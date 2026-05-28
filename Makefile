@@ -1,15 +1,27 @@
-TARGET = kono
-OBJS = main.o
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c99
+PKG_CONFIG = pkg-config
 
-$(TARGET): $(OBJS)
-	$(CC) $(OBJS) -o $(TARGET)
+WLR_CFLAGS = $(shell $(PKG_CONFIG) --cflags wlroots-0.19)
+WLR_LIBS = $(shell $(PKG_CONFIG) --libs wlroots-0.19)
 
-main.o: main.c
-	$(CC) $(CFLAGS) -c main.c -o main.o
+CFLAGS = -Wall -Wextra -g $(WLR_CFLAGS) -DWLR_USE_UNSTABLE
+LDFLAGS = $(WLR_LIBS) -lwayland-server -lxkbcommon -lm
+
+SRC = main.c server.c output.c seat.c config.c
+OBJ = $(SRC:.c=.o)
+TARGET = prot
+
+all: $(TARGET)
+
+$(TARGET): $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LDFLAGS)
+
+%.o: %.c server.h config.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJ) $(TARGET)
 
-.PHONY: clean
+run: $(TARGET)
+	sudo ./$(TARGET)
+
+.PHONY: all clean run
